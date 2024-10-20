@@ -1,0 +1,150 @@
+﻿@page "/"
+@using BlazorMovieDirectory.Domain
+@using BlazorMovieDirectory.Infrastructure.Contracts
+
+@rendermode InteractiveServer
+
+<PageTitle>@Title</PageTitle>
+
+<div class="container">
+    <div class="row heading">
+        <h3>Movie Collection Database</h3>
+    </div>
+
+    <div class="row">
+        <form class="row" method="post" @onsubmit="OnMovieSearch" @formname="searchMovieForm">
+            <div class="row rowFilter mb-2">
+                <div class="col-md-2 filterLabel">
+                    Genre
+                </div>
+                <div class="col-md-10">
+                    <InputSelect id="genre" class="form-select" @bind-Value="@MovieGenreViewModel.MovieGenre">
+                        @foreach (var genre in MovieGenreViewModel.Genres)
+                        {
+                            <option value="@genre">@genre</option>
+                        }
+                    </InputSelect>
+                </div>
+            </div>
+            <div class="row rowFilter mb-2">
+                <div class="col-md-2 filterLabel">
+                    Title
+                </div>
+                <div class="col-md-10">
+                    <InputText id="SearchString" class="form-control" @bind-Value="@MovieGenreViewModel.SearchString" placeholder="Search movie title"></InputText>
+                </div>
+            </div>
+            <div class="row rowFilter mb-2">
+                <div class="col-md-2 filterLabel">
+                    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                </div>
+                <div class="col-md-10" />
+            </div>
+        </form>
+    </div>
+    <br />
+    <div class="row">
+        <div class="col-md-2 addMovie">
+            <a href="/movieadd" class="btn btn-primary btn-sm mb-1">
+                New Movie
+            </a>
+        </div>
+        <div class="col-md-10" />
+    </div>
+
+    <div class="row">
+        <table class="table table-bordered table-striped">
+            <thead class="table-primary">
+                <tr>
+                    <th>Title</th>
+                    <th>Release Date</th>
+                    <th>Genre</th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var movie in MovieGenreViewModel.Movies)
+                {
+                    <tr>
+                        <td>@movie.Title</td>
+                        <td>@movie.ReleaseDate.ToShortDateString()</td>
+                        <td>@movie.Genre</td>
+                        <td>
+                            <a href="@($"movieupdate/{movie.Id}")" class="btn btn-info btn-sm mb-1">
+                                Edit
+                            </a>
+                        </td>
+                        <td>
+                            <a href="@($"moviedetail/{movie.Id}")" class="btn btn-primary btn-sm mb-1">
+                                Details
+                            </a>
+                        </td>
+                        <td>
+                            <button class="btn btn-danger btn-sm mb-1" @onclick="() => DeleteMovie(movie.Id)">Delete</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private string Title = "Movie Collection";
+
+    [SupplyParameterFromForm]
+    public MovieGenreViewModel MovieGenreViewModel { get; set; }
+
+    [Inject]
+    public IMovieRepository MovieRepository { get; set; }
+
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+
+    [Inject]
+    public IJSRuntime JSRuntime { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        MovieGenreViewModel = new MovieGenreViewModel();
+        MovieGenreViewModel.Genres = await MovieRepository.GetGenres();
+        MovieGenreViewModel.Movies = (List<Domain.Movie>)await MovieRepository.GetAllMovies();
+    }
+
+    private async Task OnMovieSearch()
+    {
+        List<Domain.Movie> movies = (List<Domain.Movie>)await MovieRepository.GetAllMovies();
+
+        if (!string.IsNullOrEmpty(MovieGenreViewModel.SearchString))
+        {
+            movies = movies.Where(x => x.Title.Contains(MovieGenreViewModel.SearchString, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        if (!string.IsNullOrEmpty(MovieGenreViewModel.MovieGenre))
+        {
+            movies = movies.Where(x => x.Genre.Equals(MovieGenreViewModel.MovieGenre, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        MovieGenreViewModel = new MovieGenreViewModel();
+        MovieGenreViewModel.Genres = await MovieRepository.GetGenres();
+        MovieGenreViewModel.Movies = movies;
+    }
+
+    protected async Task DeleteMovie(int movieId)
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Delete movie item?");
+        if (confirmed)
+        {
+            await MovieRepository.DeleteMovie(movieId);
+            await InvokeAsync(() =>
+            {
+                StateHasChanged();
+            });
+            await JSRuntime.InvokeVoidAsync("alert", "Movie successfully deleted!");
+            MovieGenreViewModel = new MovieGenreViewModel();
+            MovieGenreViewModel.Movies = (List<Domain.Movie>)await MovieRepository.GetAllMovies();
+        }
+    }
+}

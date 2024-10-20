@@ -1,0 +1,135 @@
+﻿@page "/movieadd"
+
+@using BlazorMovieDirectory.Domain
+@using BlazorMovieDirectory.Infrastructure.Contracts
+
+@rendermode InteractiveServer
+
+<div class="container">
+    <div class="row">
+        @if (!string.IsNullOrEmpty(StatusMessage))
+        {
+            <div class="alert @StatusClass statusMessage">@StatusMessage</div>
+        }
+    </div>
+
+    <div class="row heading">
+        <h3>Add Movie</h3>
+    </div>
+
+    <EditForm Enhance
+              Model="MovieGenreViewModel.Movie"
+              OnValidSubmit="OnMovieSubmit"
+              FormName="frmAddMovie"
+              OnInvalidSubmit="HandleInvalidSubmit">
+
+        <DataAnnotationsValidator />
+        <ValidationSummary></ValidationSummary>
+
+        <div class="row mb-3">
+            <label for="title" class="col-form-label col-md-3">Title: </label>
+            <div class="col-md-8">
+                <InputText id="title" class="form-control col-md-8" @bind-Value="@MovieGenreViewModel.Movie.Title" placeholder="Enter movie title"></InputText>
+            </div>
+            <ValidationMessage class="offset-md-3 col-md-8 validationStyle" For="@(() => MovieGenreViewModel.Movie.Title)" />
+        </div>
+
+        <div class="row mb-3">
+            <label for="releaseDate" class="col-form-label col-md-3">Release Date: </label>
+            <div class="col-md-8">
+                <InputDate id="releaseDate" class="form-control col-md-8" @bind-Value="@MovieGenreViewModel.Movie.ReleaseDate" placeholder="Enter release date"></InputDate>
+            </div>
+            <ValidationMessage class="offset-md-3 col-md-8 validationStyle" For="@(() => MovieGenreViewModel.Movie.ReleaseDate)" />
+        </div>
+
+        <div class="row mb-3">
+            <label for="genre" class="col-form-label col-md-3">Genre: </label>
+            <div class="col-md-8">
+                <InputSelect id="genre" class="form-select col-md-8" @bind-Value="@MovieGenreViewModel.Movie.Genre">
+                    @foreach (var genre in MovieGenreViewModel.Genres)
+                    {
+                        <option value="@genre">@genre</option>
+                    }
+                </InputSelect>
+            </div>
+            <ValidationMessage class="offset-md-3 col-md-8 validationStyle" For="@(() => MovieGenreViewModel.Movie.Genre)" />
+        </div>
+
+        <div class="row mb-3">
+            <label for="price" class="col-form-label col-md-3">Price: </label>
+            <div class="col-md-8">
+                <InputNumber id="price" class="form-control col-md-8" @bind-Value="@MovieGenreViewModel.Movie.Price"></InputNumber>
+            </div>
+            <ValidationMessage class="offset-md-3 col-md-8 validationStyle" For="@(() => MovieGenreViewModel.Movie.Price)" />
+        </div>
+
+        <div class="row mb-3">
+            <label for="rating" class="col-form-label col-md-3">Rating: </label>
+            <div class="col-md-8">
+                <InputText id="rating" class="form-control col-md-8" @bind-Value="@MovieGenreViewModel.Movie.Rating" placeholder="Enter movie rating"></InputText>
+            </div>
+            <ValidationMessage class="offset-md-3 col-md-8 validationStyle" For="@(() => MovieGenreViewModel.Movie.Rating)" />
+        </div>
+
+        <div class="row">
+            <div class="col-md-3">&nbsp;</div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary submitButton">Save</button>
+            </div>
+            <div class="col-md-2">
+                <button type="reset" class="btn btn-primary submitButton" @onclick="@Reset">Clear</button>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-info" @onclick="@NavigateToMain">Back to main</button>
+            </div>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    protected string StatusMessage = string.Empty;
+    protected string StatusClass = string.Empty;
+
+    [Inject]
+    public IMovieRepository MovieRepository { get; set; }
+
+    [SupplyParameterFromForm]
+    public MovieGenreViewModel MovieGenreViewModel { get; set; }
+
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        StatusClass = string.Empty;
+        StatusMessage = string.Empty;
+        MovieGenreViewModel = new MovieGenreViewModel();
+        MovieGenreViewModel.Genres = await MovieRepository.GetGenres();
+    }
+
+    private async Task OnMovieSubmit()
+    {
+        await MovieRepository.AddMovie(MovieGenreViewModel.Movie);
+        StatusClass = "alert-success";
+        StatusMessage = "Movie successfully added to the database.";
+        MovieGenreViewModel.Movie = new Domain.Movie();
+    }
+
+    protected void HandleInvalidSubmit()
+    {
+        StatusClass = "alert-danger";
+        StatusMessage = "There are some validation errors. Please try again.";
+    }
+
+    protected void Reset()
+    {
+        StatusClass = string.Empty;
+        StatusMessage = string.Empty;
+        MovieGenreViewModel.Movie = new Domain.Movie();
+    }
+
+    protected void NavigateToMain()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+}

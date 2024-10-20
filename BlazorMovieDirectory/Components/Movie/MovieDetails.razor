@@ -1,0 +1,82 @@
+﻿@page "/moviedetail/{MovieId:int}"
+
+@rendermode InteractiveServer
+
+@using BlazorMovieDirectory.Domain
+@using BlazorMovieDirectory.Infrastructure.Contracts
+
+<div class="container">
+    <div class="row heading">
+        <h3>Movie Details</h3>
+    </div>
+    <hr />
+    <br />
+    <div class="row">
+        <div class="row mb-2">
+            <label class="col-sm-2 col-form-label">Title</label>
+            <div class="col-sm-10">
+                <label type="text" class="form-control">@MovieGenreViewModel.Movie.Title</label>
+            </div>
+        </div>
+
+        <div class="row mb-2">
+            <label class="col-sm-2 col-form-label">Release Date</label>
+            <div class="col-sm-10">
+                <label type="text" class="form-control">@MovieGenreViewModel.Movie.ReleaseDate.ToShortDateString()</label>
+            </div>
+        </div>
+
+        <div class="row mb-2">
+            <label class="col-sm-2 col-form-label">Genre</label>
+            <div class="col-sm-10">
+                <label type="text" class="form-control">@MovieGenreViewModel.Movie.Genre</label>
+            </div>
+        </div>
+
+        <div class="row mb-2">
+            <label class="col-sm-2 col-form-label">Price</label>
+            <div class="col-sm-10">
+                <label type="text" class="form-control">@MovieGenreViewModel.Movie.Price</label>
+            </div>
+        </div>
+
+        <div class="row mb-2">
+            <label class="col-sm-2 col-form-label">Rating</label>
+            <div class="col-sm-10">
+                <label type="text" class="form-control">@MovieGenreViewModel.Movie.Rating</label>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-2">&nbsp;</div>
+            <div class="col-md-10">
+                <button type="button" class="btn btn-primary" @onclick="@NavigateToMain">Back to main</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int MovieId { get; set; }
+
+    public MovieGenreViewModel MovieGenreViewModel { get; set; }
+
+    [Inject]
+    public IMovieRepository MovieRepository { get; set; }
+
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    {
+        MovieGenreViewModel = new MovieGenreViewModel();
+
+        MovieGenreViewModel.Movie = await MovieRepository.GetMovieById(MovieId);
+    }
+
+    protected void NavigateToMain()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+}
